@@ -46,24 +46,24 @@ siyuan-cli chat "search notes about Go"         # AI chat
 
 ## Commands
 
-| Command | Description |
-|---------|-------------|
-| `auth login` / `logout` / `status` | Connection management |
-| `config list` / `get` / `set` | Configuration management |
-| `notebook list` / `create` / `rename` / `delete` / `open` / `close` / `getconf` / `setconf` | Notebook management |
-| `document list` / `get` / `createMd` / `rename` / `delete` / `move` / `copy` / `outline` / `daily` / `history` / `rollback` | Document management |
-| `block get` / `source` / `update` / `append` / `delete` | Block operations |
-| `tag list` / `search` / `add` / `remove` | Tag management |
-| `search doc` / `search block` | Search |
-| `query <sql>` | SQL query |
-| `export doc` / `export notebook` | Export |
-| `import md` / `import sy` | Import |
-| `asset upload` / `list` / `unused` / `clean` | Asset management |
-| `sync status` / `now` | Sync management |
-| `fav [content]` | Favorites |
-| `chat [question]` | AI chat |
-| `mcp` | Start MCP Server |
-| `version` | Version info |
+| Command                                                                                                                     | Description              |
+| --------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
+| `auth login` / `logout` / `status`                                                                                          | Connection management    |
+| `config list` / `get` / `set`                                                                                               | Configuration management |
+| `notebook list` / `create` / `rename` / `delete` / `open` / `close` / `getconf` / `setconf`                                 | Notebook management      |
+| `document list` / `get` / `createMd` / `rename` / `delete` / `move` / `copy` / `outline` / `daily` / `history` / `rollback` | Document management      |
+| `block get` / `source` / `update` / `append` / `delete`                                                                     | Block operations         |
+| `tag list` / `search` / `add` / `remove`                                                                                    | Tag management           |
+| `search doc` / `search block`                                                                                               | Search                   |
+| `query <sql>`                                                                                                               | SQL query                |
+| `export doc` / `export notebook`                                                                                            | Export                   |
+| `import md` / `import sy`                                                                                                   | Import                   |
+| `asset upload` / `list` / `unused` / `clean`                                                                                | Asset management         |
+| `sync status` / `now`                                                                                                       | Sync management          |
+| `fav [content]`                                                                                                             | Favorites                |
+| `chat [question]`                                                                                                           | AI chat                  |
+| `mcp`                                                                                                                       | Start MCP Server         |
+| `version`                                                                                                                   | Version info             |
 
 ### Notebooks
 
@@ -198,22 +198,22 @@ siyuan-cli config list
 
 `siyuan-cli mcp` runs an MCP Server in stdio mode with 14 registered tools:
 
-| Tool | Description |
-|------|-------------|
-| `notebook_list` | List all notebooks |
-| `document_list` | List document tree |
-| `document_get` | Get document content |
-| `document_outline` | Get document outline |
-| `block_get` | Get block info |
+| Tool                 | Description               |
+| -------------------- | ------------------------- |
+| `notebook_list`      | List all notebooks        |
+| `document_list`      | List document tree        |
+| `document_get`       | Get document content      |
+| `document_outline`   | Get document outline      |
+| `block_get`          | Get block info            |
 | `block_get_kramdown` | Get block kramdown source |
-| `search_fulltext` | Full-text search |
-| `search_docs` | Search documents |
-| `tag_list` | List tags |
-| `query_sql` | Execute SQL query |
-| `document_create` | Create document |
-| `daily_note_create` | Create daily note |
-| `block_update` | Update block content |
-| `block_append` | Append block to document |
+| `search_fulltext`    | Full-text search          |
+| `search_docs`        | Search documents          |
+| `tag_list`           | List tags                 |
+| `query_sql`          | Execute SQL query         |
+| `document_create`    | Create document           |
+| `daily_note_create`  | Create daily note         |
+| `block_update`       | Update block content      |
+| `block_append`       | Append block to document  |
 
 **Claude Desktop:**
 
@@ -243,4 +243,4 @@ siyuan-cli config list
 
 ## License
 
-[MIT](LICENSE) © 2025 cicbyte
+[MIT](LICENSE) © 2026 cicbyte

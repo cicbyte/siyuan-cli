@@ -46,24 +46,24 @@ siyuan-cli chat "搜索关于 Go 的笔记"            # AI 对话
 
 ## 命令一览
 
-| 命令 | 说明 |
-|------|------|
-| `auth login` / `logout` / `status` | 连接管理 |
-| `config list` / `get` / `set` | 配置管理 |
-| `notebook list` / `create` / `rename` / `delete` / `open` / `close` / `getconf` / `setconf` | 笔记本管理 |
-| `document list` / `get` / `createMd` / `rename` / `delete` / `move` / `copy` / `outline` / `daily` / `history` / `rollback` | 文档管理 |
-| `block get` / `source` / `update` / `append` / `delete` | 块操作 |
-| `tag list` / `search` / `add` / `remove` | 标签管理 |
-| `search doc` / `search block` | 搜索 |
-| `query <sql>` | SQL 查询 |
-| `export doc` / `export notebook` | 导出 |
-| `import md` / `import sy` | 导入 |
-| `asset upload` / `list` / `unused` / `clean` | 资源管理 |
-| `sync status` / `now` | 同步管理 |
-| `fav [content]` | 收藏 |
-| `chat [question]` | AI 对话 |
-| `mcp` | 启动 MCP Server |
-| `version` | 版本信息 |
+| 命令                                                                                                                          | 说明            |
+| --------------------------------------------------------------------------------------------------------------------------- | ------------- |
+| `auth login` / `logout` / `status`                                                                                          | 连接管理          |
+| `config list` / `get` / `set`                                                                                               | 配置管理          |
+| `notebook list` / `create` / `rename` / `delete` / `open` / `close` / `getconf` / `setconf`                                 | 笔记本管理         |
+| `document list` / `get` / `createMd` / `rename` / `delete` / `move` / `copy` / `outline` / `daily` / `history` / `rollback` | 文档管理          |
+| `block get` / `source` / `update` / `append` / `delete`                                                                     | 块操作           |
+| `tag list` / `search` / `add` / `remove`                                                                                    | 标签管理          |
+| `search doc` / `search block`                                                                                               | 搜索            |
+| `query <sql>`                                                                                                               | SQL 查询        |
+| `export doc` / `export notebook`                                                                                            | 导出            |
+| `import md` / `import sy`                                                                                                   | 导入            |
+| `asset upload` / `list` / `unused` / `clean`                                                                                | 资源管理          |
+| `sync status` / `now`                                                                                                       | 同步管理          |
+| `fav [content]`                                                                                                             | 收藏            |
+| `chat [question]`                                                                                                           | AI 对话         |
+| `mcp`                                                                                                                       | 启动 MCP Server |
+| `version`                                                                                                                   | 版本信息          |
 
 ### 笔记本
 
@@ -198,22 +198,22 @@ siyuan-cli config list
 
 `siyuan-cli mcp` 以 stdio 模式运行 MCP Server，注册 14 个工具：
 
-| Tool | 描述 |
-|------|------|
-| `notebook_list` | 列出所有笔记本 |
-| `document_list` | 列出文档树 |
-| `document_get` | 获取文档内容 |
-| `document_outline` | 获取文档大纲 |
-| `block_get` | 获取块信息 |
+| Tool                 | 描述              |
+| -------------------- | --------------- |
+| `notebook_list`      | 列出所有笔记本         |
+| `document_list`      | 列出文档树           |
+| `document_get`       | 获取文档内容          |
+| `document_outline`   | 获取文档大纲          |
+| `block_get`          | 获取块信息           |
 | `block_get_kramdown` | 获取块 kramdown 源码 |
-| `search_fulltext` | 全文搜索 |
-| `search_docs` | 搜索文档 |
-| `tag_list` | 列出标签 |
-| `query_sql` | 执行 SQL 查询 |
-| `document_create` | 创建文档 |
-| `daily_note_create` | 创建日记 |
-| `block_update` | 更新块内容 |
-| `block_append` | 追加块到文档 |
+| `search_fulltext`    | 全文搜索            |
+| `search_docs`        | 搜索文档            |
+| `tag_list`           | 列出标签            |
+| `query_sql`          | 执行 SQL 查询       |
+| `document_create`    | 创建文档            |
+| `daily_note_create`  | 创建日记            |
+| `block_update`       | 更新块内容           |
+| `block_append`       | 追加块到文档          |
 
 **Claude Desktop：**
 
@@ -243,4 +243,4 @@ siyuan-cli config list
 
 ## 许可证
 
-[MIT](LICENSE) © 2025 cicbyte
+[MIT](LICENSE) © 2026 cicbyte
