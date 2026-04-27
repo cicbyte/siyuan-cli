@@ -1,0 +1,49 @@
+name: search
+tests:
+  # === search doc ===
+  - name: "搜索文档缺少关键词报错"
+    command: ["search", "doc"]
+    expect:
+      exit_code: 1
+      contains_stderr: ["Error", "accepts"]
+
+  - name: "搜索文档 JSON 格式"
+    requires_server: true
+    command: ["search", "doc", "测试", "--format", "json"]
+    expect:
+      exit_code: 0
+      json_valid: true
+
+  - name: "搜索文档带限制数量"
+    requires_server: true
+    command: ["search", "doc", "测试", "--limit", "1"]
+    expect:
+      exit_code: 0
+
+  # === search block ===
+  - name: "搜索块缺少关键词报错"
+    command: ["search", "block"]
+    expect:
+      exit_code: 1
+      contains_stderr: ["Error", "accepts"]
+
+  - name: "搜索块 JSON 格式"
+    requires_server: true
+    command: ["search", "block", "测试", "--format", "json"]
+    expect:
+      exit_code: 0
+      json_valid: true
+
+  # === query ===
+  - name: "SQL 查询缺少参数报错"
+    command: ["query"]
+    expect:
+      exit_code: 1
+      contains_stderr: ["Error", "accepts"]
+
+  - name: "SQL 查询 JSON 格式"
+    requires_server: true
+    command: ["query", "SELECT * FROM blocks WHERE type='d' LIMIT 1", "--format", "json"]
+    expect:
+      exit_code: 0
+      json_valid: true

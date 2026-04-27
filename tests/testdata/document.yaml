@@ -1,0 +1,122 @@
+name: document
+tests:
+  # === list ===
+  - name: "列出文档树"
+    requires_server: true
+    command: ["document", "list", "{{notebook}}"]
+    expect:
+      exit_code: 0
+      contains: ["笔记本"]
+
+  - name: "列出文档树 JSON 格式"
+    requires_server: true
+    command: ["document", "list", "{{notebook}}", "--format", "json"]
+    expect:
+      exit_code: 0
+      json_valid: true
+      contains_json: ["notebook", "tree"]
+
+  - name: "列出文档树限制深度"
+    requires_server: true
+    command: ["document", "list", "{{notebook}}", "--depth", "1"]
+    expect:
+      exit_code: 0
+      contains: ["笔记本"]
+
+  - name: "列出文档缺少笔记本报错"
+    command: ["document", "list"]
+    expect:
+      exit_code: 0
+      contains: ["❌", "笔记本"]
+
+  - name: "列出不存在的笔记本"
+    requires_server: true
+    command: ["document", "list", "nonexistent-notebook-xyz-999"]
+    expect:
+      exit_code: 0
+      contains: ["未找到"]
+
+  # === get ===
+  - name: "获取文档内容"
+    requires_server: true
+    command: ["document", "get", "{{notebook}}", "{{doc_path}}"]
+    expect:
+      exit_code: 0
+      contains: ["路径", "ID"]
+
+  - name: "获取文档内容 JSON 格式"
+    requires_server: true
+    command: ["document", "get", "{{notebook}}", "{{doc_path}}", "--format", "json"]
+    expect:
+      exit_code: 0
+      json_valid: true
+      contains_json: ["path", "id", "content"]
+
+  - name: "获取文档缺少参数报错"
+    command: ["document", "get", "{{notebook}}"]
+    expect:
+      exit_code: 1
+      contains_stderr: ["Error", "accepts"]
+
+  - name: "获取不存在的文档"
+    requires_server: true
+    command: ["document", "get", "{{notebook}}", "/不存在文档"]
+    expect:
+      exit_code: 0
+      contains: ["未找到"]
+
+  # === createMd ===
+  - name: "创建文档缺少参数报错"
+    command: ["document", "createMd"]
+    expect:
+      exit_code: 0
+      contains: ["❌", "笔记本"]
+
+  # === rename ===
+  - name: "重命名文档缺少参数报错"
+    command: ["document", "rename"]
+    expect:
+      exit_code: 0
+      contains: ["❌", "错误"]
+
+  # === delete ===
+  - name: "删除文档缺少参数报错"
+    command: ["document", "delete"]
+    expect:
+      exit_code: 0
+      contains: ["❌", "错误"]
+
+  # === move ===
+  - name: "移动文档缺少参数报错"
+    command: ["document", "move"]
+    expect:
+      exit_code: 1
+      contains_stderr: ["Error", "accepts"]
+
+  # === copy ===
+  - name: "复制文档缺少参数报错"
+    command: ["document", "copy"]
+    expect:
+      exit_code: 1
+      contains_stderr: ["Error", "accepts"]
+
+  # === outline ===
+  - name: "大纲缺少参数报错"
+    command: ["document", "outline"]
+    expect:
+      exit_code: 1
+      contains_stderr: ["Error", "accepts"]
+
+  # === history ===
+  - name: "历史记录缺少参数报错"
+    command: ["document", "history"]
+    expect:
+      exit_code: 1
+      contains_stderr: ["Error", "accepts"]
+
+  # === rollback ===
+  - name: "回滚缺少参数报错"
+    command: ["document", "rollback"]
+    expect:
+      exit_code: 1
+      contains_stderr: ["Error", "accepts"]

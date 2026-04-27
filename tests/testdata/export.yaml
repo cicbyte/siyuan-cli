@@ -1,0 +1,57 @@
+name: export
+tests:
+  # === export doc ===
+  - name: "导出文档缺少参数报错"
+    command: ["export", "doc"]
+    expect:
+      exit_code: 1
+      contains_stderr: ["Error", "accepts"]
+
+  - name: "导出文档 Markdown 格式"
+    requires_server: true
+    command: ["export", "doc", "{{notebook}}", "{{doc_path}}", "--format", "md", "--output", "tests/testdata/_output_test.md"]
+    expect:
+      exit_code: 0
+      contains: ["已导出"]
+      output_file_exists: "tests/testdata/_output_test.md"
+    cleanup: ["tests/testdata/_output_test.md"]
+
+  - name: "导出文档不支持的格式报错"
+    requires_server: true
+    command: ["export", "doc", "{{notebook}}", "{{doc_path}}", "--format", "pdf"]
+    expect:
+      exit_code: 0
+      contains: ["不支持"]
+
+  # === export notebook ===
+  - name: "导出笔记本缺少参数报错"
+    command: ["export", "notebook"]
+    expect:
+      exit_code: 1
+      contains_stderr: ["Error", "accepts"]
+
+  - name: "导出不存在的笔记本"
+    requires_server: true
+    command: ["export", "notebook", "nonexistent-notebook-xyz-999"]
+    expect:
+      exit_code: 0
+      contains: ["未找到"]
+
+  # === import ===
+  - name: "导入 Markdown 缺少文件报错"
+    command: ["import", "md"]
+    expect:
+      exit_code: 1
+      contains_stderr: ["Error", "accepts"]
+
+  - name: "导入不存在的文件"
+    command: ["import", "md", "nonexistent-file-xyz.md"]
+    expect:
+      exit_code: 1
+      contains_stderr: ["Error", "required flag"]
+
+  - name: "导入思源格式缺少文件报错"
+    command: ["import", "sy"]
+    expect:
+      exit_code: 1
+      contains_stderr: ["Error", "accepts"]

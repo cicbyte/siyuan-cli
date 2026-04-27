@@ -1,0 +1,79 @@
+name: help
+tests:
+  - name: "显示帮助信息"
+    command: ["--help"]
+    expect:
+      exit_code: 0
+      contains: ["思源笔记命令行工具", "notebook", "document", "search", "block", "tag", "export", "asset", "sync"]
+
+  - name: "显示版本信息"
+    command: ["version"]
+    expect:
+      exit_code: 0
+      contains: ["siyuan-cli"]
+
+  - name: "无效命令报错"
+    command: ["nonexistent-command"]
+    expect:
+      exit_code: 1
+      contains_stderr: ["Error", "unknown"]
+
+  - name: "document --help"
+    command: ["document", "--help"]
+    expect:
+      exit_code: 0
+      contains: ["list", "get", "createMd", "rename", "delete", "move", "copy", "outline", "daily", "history", "rollback"]
+
+  - name: "notebook --help"
+    command: ["notebook", "--help"]
+    expect:
+      exit_code: 0
+      contains: ["list", "open", "close", "create", "rename", "delete"]
+
+  - name: "search --help"
+    command: ["search", "--help"]
+    expect:
+      exit_code: 0
+      contains: ["doc", "block"]
+
+  - name: "block --help"
+    command: ["block", "--help"]
+    expect:
+      exit_code: 0
+      contains: ["get", "source", "update", "append", "delete"]
+
+  - name: "tag --help"
+    command: ["tag", "--help"]
+    expect:
+      exit_code: 0
+      contains: ["list", "search", "add", "remove"]
+
+  - name: "export --help"
+    command: ["export", "--help"]
+    expect:
+      exit_code: 0
+      contains: ["doc", "notebook"]
+
+  - name: "import --help"
+    command: ["import", "--help"]
+    expect:
+      exit_code: 0
+      contains: ["md", "sy"]
+
+  - name: "asset --help"
+    command: ["asset", "--help"]
+    expect:
+      exit_code: 0
+      contains: ["upload", "list", "unused", "clean"]
+
+  - name: "sync --help"
+    command: ["sync", "--help"]
+    expect:
+      exit_code: 0
+      contains: ["status", "now"]
+
+  - name: "query --help"
+    command: ["query", "--help"]
+    expect:
+      exit_code: 0
+      contains: ["SQL"]

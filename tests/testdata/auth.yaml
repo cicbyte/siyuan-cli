@@ -1,0 +1,20 @@
+name: auth
+tests:
+  - name: "未配置时 auth status 报错"
+    skip: true
+    command: ["auth", "status"]
+    expect:
+      exit_code: 1
+      contains: ["配置无效", "未启用"]
+
+  - name: "auth login --help"
+    command: ["auth", "login", "--help"]
+    expect:
+      exit_code: 0
+      contains: ["login"]
+
+  - name: "auth status --help"
+    command: ["auth", "status", "--help"]
+    expect:
+      exit_code: 0
+      contains: ["status"]

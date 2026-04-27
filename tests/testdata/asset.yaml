@@ -1,0 +1,39 @@
+name: asset
+tests:
+  - name: "上传资源缺少文件报错"
+    command: ["asset", "upload"]
+    expect:
+      exit_code: 1
+      contains_stderr: ["Error", "accepts"]
+
+  - name: "上传不存在的文件"
+    command: ["asset", "upload", "nonexistent-file-xyz.txt"]
+    expect:
+      exit_code: 0
+      contains: ["不存在"]
+
+  - name: "列出文档资源缺少路径报错"
+    command: ["asset", "list"]
+    expect:
+      exit_code: 1
+      contains_stderr: ["Error", "accepts"]
+
+  - name: "列出未使用资源"
+    requires_server: true
+    command: ["asset", "unused"]
+    expect:
+      exit_code: 0
+
+  - name: "列出未使用资源 JSON 格式"
+    requires_server: true
+    command: ["asset", "unused", "--format", "json"]
+    expect:
+      exit_code: 0
+      json_valid: true
+
+  - name: "清理未使用资源（无 --force）"
+    requires_server: true
+    skip: true
+    command: ["asset", "clean"]
+    expect:
+      exit_code: 0

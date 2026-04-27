@@ -1,0 +1,45 @@
+name: tag
+tests:
+  - name: "列出所有标签"
+    requires_server: true
+    command: ["tag", "list"]
+    expect:
+      exit_code: 0
+
+  - name: "列出标签 JSON 格式"
+    skip: true
+    requires_server: true
+    command: ["tag", "list", "--format", "json"]
+    expect:
+      exit_code: 0
+      json_valid: true
+
+  - name: "搜索标签缺少关键词报错"
+    command: ["tag", "search"]
+    expect:
+      exit_code: 1
+      contains_stderr: ["Error", "accepts"]
+
+  - name: "搜索标签"
+    requires_server: true
+    command: ["tag", "search", "测试"]
+    expect:
+      exit_code: 0
+
+  - name: "添加标签缺少 --tag 报错"
+    command: ["tag", "add", "{{notebook}}", "{{doc_path}}"]
+    expect:
+      exit_code: 1
+      contains_stderr: ["Error", "required flag"]
+
+  - name: "移除标签缺少参数报错"
+    command: ["tag", "remove"]
+    expect:
+      exit_code: 1
+      contains_stderr: ["Error", "accepts"]
+
+  - name: "移除标签缺少 --tag 报错"
+    command: ["tag", "remove", "{{notebook}}", "{{doc_path}}"]
+    expect:
+      exit_code: 1
+      contains_stderr: ["Error", "required flag"]

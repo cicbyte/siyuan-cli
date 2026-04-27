@@ -1,0 +1,55 @@
+name: notebook
+tests:
+  - name: "列出所有笔记本"
+    requires_server: true
+    command: ["notebook", "list"]
+    expect:
+      exit_code: 0
+      contains: ["笔记本"]
+
+  - name: "列出笔记本 JSON 格式"
+    requires_server: true
+    command: ["notebook", "list", "--format", "json"]
+    expect:
+      exit_code: 0
+      json_valid: true
+      contains_json: ["count", "list"]
+
+  - name: "列出已关闭笔记本"
+    requires_server: true
+    command: ["notebook", "list", "--closed"]
+    expect:
+      exit_code: 0
+      contains: ["笔记本"]
+
+  - name: "创建缺少参数报错"
+    command: ["notebook", "create"]
+    expect:
+      exit_code: 0
+      contains: ["❌", "笔记本名称"]
+
+  - name: "打开不存在的笔记本"
+    requires_server: true
+    command: ["notebook", "open", "nonexistent-notebook-xyz-999"]
+    expect:
+      exit_code: 0
+      contains: ["不存在"]
+
+  - name: "关闭不存在的笔记本"
+    requires_server: true
+    command: ["notebook", "close", "nonexistent-notebook-xyz-999"]
+    expect:
+      exit_code: 0
+      contains: ["不存在"]
+
+  - name: "重命名缺少参数报错"
+    command: ["notebook", "rename"]
+    expect:
+      exit_code: 0
+      contains: ["❌", "错误"]
+
+  - name: "删除缺少参数报错"
+    command: ["notebook", "delete"]
+    expect:
+      exit_code: 0
+      contains: ["❌", "错误"]

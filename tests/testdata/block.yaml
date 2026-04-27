@@ -1,0 +1,46 @@
+name: block
+tests:
+  - name: "获取块信息缺少 ID 报错"
+    command: ["block", "get"]
+    expect:
+      exit_code: 1
+      contains_stderr: ["Error", "accepts"]
+
+  - name: "获取无效块 ID"
+    requires_server: true
+    command: ["block", "get", "invalid-block-id-xyz"]
+    expect:
+      exit_code: 0
+      contains: ["未找到"]
+
+  - name: "获取块信息 JSON 格式"
+    requires_server: true
+    command: ["block", "get", "{{block_id}}", "--format", "json"]
+    expect:
+      exit_code: 0
+      json_valid: true
+      contains_json: ["id", "type", "content"]
+
+  - name: "获取块源码缺少 ID 报错"
+    command: ["block", "source"]
+    expect:
+      exit_code: 1
+      contains_stderr: ["Error", "accepts"]
+
+  - name: "更新块缺少参数报错"
+    command: ["block", "update"]
+    expect:
+      exit_code: 1
+      contains_stderr: ["Error", "accepts"]
+
+  - name: "追加块缺少参数报错"
+    command: ["block", "append"]
+    expect:
+      exit_code: 1
+      contains_stderr: ["Error", "accepts"]
+
+  - name: "删除块缺少 ID 报错"
+    command: ["block", "delete"]
+    expect:
+      exit_code: 1
+      contains_stderr: ["Error", "accepts"]

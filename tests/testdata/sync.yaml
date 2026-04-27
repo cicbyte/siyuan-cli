@@ -1,0 +1,21 @@
+name: sync
+tests:
+  - name: "查看同步状态"
+    requires_server: true
+    command: ["sync", "status"]
+    expect:
+      exit_code: 0
+
+  - name: "查看同步状态 JSON 格式"
+    requires_server: true
+    command: ["sync", "status", "--format", "json"]
+    expect:
+      exit_code: 0
+      json_valid: true
+
+  - name: "立即同步"
+    requires_server: true
+    command: ["sync", "now"]
+    expect:
+      exit_code: 0
+      contains: ["同步"]

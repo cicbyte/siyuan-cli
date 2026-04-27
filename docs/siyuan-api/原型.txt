@@ -1,0 +1,630 @@
+// Package siyuan 为思源笔记（SiYuan Note）内核 API 提供类型安全、注释详尽的 Go SDK。
+// 所有方法均封装了官方文档中的 POST 接口，自动完成鉴权、JSON 序列化/反序列化。
+//
+// 快速开始：
+//
+//	client := siyuan.New("http://127.0.0.1:6806", "") // 第二个参数为 token，若未设置可留空
+//	books, _ := client.ListNotebooks()
+//	for _, b := range books {
+//		fmt.Println(b.Name)
+//	}
+//
+// 错误处理：
+//
+//	所有方法返回的 error 均实现了 *SiYuanError 类型，可获取业务 code 与 msg。
+package siyuan
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+)
+
+// ============================================================================
+// 客户端定义
+// ============================================================================
+
+// Client 是思源 API 的客户端，线程安全，可复用。
+type Client struct {
+	base   string        // 形如 http://127.0.0.1:6806，结尾无 /
+	token  string        // 若内核设置了访问授权，则填写；否则留空
+	httpc  *http.Client  // 可替换为带超时、代理、Cookie 等的自定义 Client
+}
+
+// New 返回一个思源 API 客户端。
+// baseURL 示例："http://127.0.0.1:6806"
+// token   示例："20211224221921-0d3w1kpf"（内核设置 → 关于 → 访问授权）
+func New(baseURL, token string) *Client {
+	if len(baseURL) > 0 && baseURL[len(baseURL)-1] == '/' {
+		baseURL = baseURL[:len(baseURL)-1]
+	}
+	return &Client{
+		base:  baseURL,
+		token: token,
+		httpc: http.DefaultClient,
+	}
+}
+
+// SetHTTPClient 可注入自定义 *http.Client（如超时、代理、日志中间件等）。
+func (c *Client) SetHTTPClient(h *http.Client) { c.httpc = h }
+
+// ============================================================================
+// 基础请求封装
+// ============================================================================
+
+// post 统一封装 POST /api/xxx 请求。
+// 入参 v 会被 json.Marshal 为 body；出参 dst 为反序列化目标，nil 时忽略 body。
+func (c *Client) post(ctx context.Context, route string, v interface{}, dst interface{}) error {
+	url := c.base + route
+	var body io.Reader
+	if v != nil {
+		bs, err := json.Marshal(v)
+		if err != nil {
+			return fmt.Errorf("json marshal: %w", err)
+		}
+		body = bytes.NewReader(bs)
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, body)
+	if err != nil {
+		return fmt.Errorf("new request: %w", err)
+	}
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+	if c.token != "" {
+		req.Header.Set("Authorization", "Token "+c.token)
+	}
+	resp, err := c.httpc.Do(req)
+	if err != nil {
+		return fmt.Errorf("do request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("unexpected http status: %d", resp.StatusCode)
+	}
+	var raw struct {
+		Code int             `json:"code"`
+		Msg  string          `json:"msg"`
+		Data json.RawMessage `json:"data"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&raw); err != nil {
+		return fmt.Errorf("json decode wrapper: %w", err)
+	}
+	if raw.Code != 0 {
+		return &SiYuanError{Code: raw.Code, Msg: raw.Msg}
+	}
+	if dst != nil && len(raw.Data) > 0 {
+		if err := json.Unmarshal(raw.Data, dst); err != nil {
+			return fmt.Errorf("json decode data: %w", err)
+		}
+	}
+	return nil
+}
+
+// SiYuanError 代表思源业务错误。
+type SiYuanError struct {
+	Code int    `json:"code"`
+	Msg  string `json:"msg"`
+}
+
+func (e *SiYuanError) Error() string {
+	return fmt.Sprintf("siyuan error code=%d msg=%s", e.Code, e.Msg)
+}
+
+// ============================================================================
+// 笔记本相关
+// ============================================================================
+
+// Notebook 代表一个笔记本元信息。
+type Notebook struct {
+	ID     string `json:"id"`
+	Name   string `json:"name"`
+	Icon   string `json:"icon"`
+	Sort   int    `json:"sort"`
+	Closed bool   `json:"closed"`
+}
+
+// ListNotebooks 列出全部笔记本。
+// 路由：POST /api/notebook/lsNotebooks
+// 返回示例见官方文档。
+func (c *Client) ListNotebooks(ctx context.Context) ([]Notebook, error) {
+	var ret struct {
+		Notebooks []Notebook `json:"notebooks"`
+	}
+	err := c.post(ctx, "/api/notebook/lsNotebooks", nil, &ret)
+	return ret.Notebooks, err
+}
+
+// OpenNotebook 打开指定笔记本。
+// 路由：POST /api/notebook/openNotebook
+func (c *Client) OpenNotebook(ctx context.Context, notebook string) error {
+	return c.post(ctx, "/api/notebook/openNotebook", M{"notebook": notebook}, nil)
+}
+
+// CloseNotebook 关闭指定笔记本。
+// 路由：POST /api/notebook/closeNotebook
+func (c *Client) CloseNotebook(ctx context.Context, notebook string) error {
+	return c.post(ctx, "/api/notebook/closeNotebook", M{"notebook": notebook}, nil)
+}
+
+// RenameNotebook 重命名笔记本。
+// 路由：POST /api/notebook/renameNotebook
+func (c *Client) RenameNotebook(ctx context.Context, notebook, newName string) error {
+	return c.post(ctx, "/api/notebook/renameNotebook", M{"notebook": notebook, "name": newName}, nil)
+}
+
+// CreateNotebook 创建笔记本。
+// 返回值中 Notebook.ID 为新笔记本 ID。
+// 路由：POST /api/notebook/createNotebook
+func (c *Client) CreateNotebook(ctx context.Context, name string) (*Notebook, error) {
+	var ret struct {
+		Notebook Notebook `json:"notebook"`
+	}
+	err := c.post(ctx, "/api/notebook/createNotebook", M{"name": name}, &ret)
+	return &ret.Notebook, err
+}
+
+// RemoveNotebook 删除笔记本（不可恢复）。
+// 路由：POST /api/notebook/removeNotebook
+func (c *Client) RemoveNotebook(ctx context.Context, notebook string) error {
+	return c.post(ctx, "/api/notebook/removeNotebook", M{"notebook": notebook}, nil)
+}
+
+// NotebookConf 代表笔记本配置项。
+type NotebookConf struct {
+	Name                  string `json:"name"`
+	Closed                bool   `json:"closed"`
+	RefCreateSavePath     string `json:"refCreateSavePath"`
+	CreateDocNameTemplate string `json:"createDocNameTemplate"`
+	DailyNoteSavePath     string `json:"dailyNoteSavePath"`
+	DailyNoteTemplatePath string `json:"dailyNoteTemplatePath"`
+}
+
+// GetNotebookConf 获取笔记本配置。
+// 路由：POST /api/notebook/getNotebookConf
+func (c *Client) GetNotebookConf(ctx context.Context, notebook string) (*NotebookConf, error) {
+	var ret struct {
+		Conf NotebookConf `json:"conf"`
+	}
+	err := c.post(ctx, "/api/notebook/getNotebookConf", M{"notebook": notebook}, &ret)
+	return &ret.Conf, err
+}
+
+// SetNotebookConf 保存笔记本配置。
+// 路由：POST /api/notebook/setNotebookConf
+func (c *Client) SetNotebookConf(ctx context.Context, notebook string, conf NotebookConf) error {
+	return c.post(ctx, "/api/notebook/setNotebookConf", M{"notebook": notebook, "conf": conf}, nil)
+}
+
+// ============================================================================
+// 文档相关
+// ============================================================================
+
+// CreateDocWithMd 通过 Markdown 创建文档。
+// 如 path 已存在，不会覆盖，仍返回已有文档 ID。
+// 路由：POST /api/filetree/createDocWithMd
+func (c *Client) CreateDocWithMd(ctx context.Context, notebook, path, markdown string) (string, error) {
+	var ret string
+	err := c.post(ctx, "/api/filetree/createDocWithMd",
+		M{"notebook": notebook, "path": path, "markdown": markdown}, &ret)
+	return ret, err
+}
+
+// RenameDoc 重命名文档。
+// 路由：POST /api/filetree/renameDoc
+func (c *Client) RenameDoc(ctx context.Context, notebook, path, title string) error {
+	return c.post(ctx, "/api/filetree/renameDoc",
+		M{"notebook": notebook, "path": path, "title": title}, nil)
+}
+
+// RemoveDoc 删除文档。
+// 路由：POST /api/filetree/removeDoc
+func (c *Client) RemoveDoc(ctx context.Context, notebook, path string) error {
+	return c.post(ctx, "/api/filetree/removeDoc",
+		M{"notebook": notebook, "path": path}, nil)
+}
+
+// MoveDocs 批量移动文档。
+// fromPaths 为待移动文档路径数组；toNotebook/toPath 为目标。
+// 路由：POST /api/filetree/moveDocs
+func (c *Client) MoveDocs(ctx context.Context, fromPaths []string, toNotebook, toPath string) error {
+	return c.post(ctx, "/api/filetree/moveDocs",
+		M{"fromPaths": fromPaths, "toNotebook": toNotebook, "toPath": toPath}, nil)
+}
+
+// GetHPathByPath 根据路径获取人类可读路径。
+// 返回如 "/foo/bar"
+// 路由：POST /api/filetree/getHPathByPath
+func (c *Client) GetHPathByPath(ctx context.Context, notebook, path string) (string, error) {
+	var ret string
+	err := c.post(ctx, "/api/filetree/getHPathByPath",
+		M{"notebook": notebook, "path": path}, &ret)
+	return ret, err
+}
+
+// GetHPathByID 根据块 ID 获取人类可读路径。
+// 路由：POST /api/filetree/getHPathByID
+func (c *Client) GetHPathByID(ctx context.Context, id string) (string, error) {
+	var ret string
+	err := c.post(ctx, "/api/filetree/getHPathByID", M{"id": id}, &ret)
+	return ret, err
+}
+
+// ============================================================================
+// 资源文件
+// ============================================================================
+
+// UploadAssetResp 代表上传资源文件后的响应。
+type UploadAssetResp struct {
+	ErrFiles []string          `json:"errFiles"` // 上传失败的文件名
+	SuccMap  map[string]string `json:"succMap"`  // key=原始文件名，value=保存后 assets/xxx 路径
+}
+
+// UploadAsset 上传资源文件。
+// assetsDirPath 建议 "/assets/"，参考官方文档说明。
+// 路由：POST /api/asset/upload
+// 本方法内部会构造 multipart/form-data，file 字段为文件数组。
+func (c *Client) UploadAsset(ctx context.Context, assetsDirPath string, files ...io.Reader) (*UploadAssetResp, error) {
+	// 由于 multipart 构造较长，这里仅给出签名，实现可参考标准库 mime/multipart
+	// 最终调用 c.post 即可，Content-Type 由 multipart 自动生成
+	panic("implement me")
+}
+
+// ============================================================================
+// 块相关
+// ============================================================================
+
+// InsertBlockReq 插入块请求。
+type InsertBlockReq struct {
+	DataType   string `json:"dataType"`             // "markdown" | "dom"
+	Data       string `json:"data"`
+	NextID     string `json:"nextID,omitempty"`
+	PreviousID string `json:"previousID,omitempty"`
+	ParentID   string `json:"parentID,omitempty"`
+}
+
+// InsertBlockResp 插入块返回。
+type InsertBlockResp struct {
+	DoOperations []struct {
+		Action string `json:"action"`
+		Data   string `json:"data"`
+		ID     string `json:"id"`
+	} `json:"doOperations"`
+}
+
+// InsertBlock 插入块。
+// 路由：POST /api/block/insertBlock
+func (c *Client) InsertBlock(ctx context.Context, req InsertBlockReq) (*InsertBlockResp, error) {
+	var ret InsertBlockResp
+	err := c.post(ctx, "/api/block/insertBlock", req, &ret)
+	return &ret, err
+}
+
+// PrependBlock 插入前置子块。
+// 路由：POST /api/block/prependBlock
+func (c *Client) PrependBlock(ctx context.Context, parentID, dataType, data string) (*InsertBlockResp, error) {
+	var ret InsertBlockResp
+	err := c.post(ctx, "/api/block/prependBlock",
+		M{"parentID": parentID, "dataType": dataType, "data": data}, &ret)
+	return &ret, err
+}
+
+// AppendBlock 插入后置子块。
+// 路由：POST /api/block/appendBlock
+func (c *Client) AppendBlock(ctx context.Context, parentID, dataType, data string) (*InsertBlockResp, error) {
+	var ret InsertBlockResp
+	err := c.post(ctx, "/api/block/appendBlock",
+		M{"parentID": parentID, "dataType": dataType, "data": data}, &ret)
+	return &ret, err
+}
+
+// UpdateBlockReq 更新块请求。
+type UpdateBlockReq struct {
+	DataType string `json:"dataType"`
+	Data     string `json:"data"`
+	ID       string `json:"id"`
+}
+
+// UpdateBlock 更新块。
+// 路由：POST /api/block/updateBlock
+func (c *Client) UpdateBlock(ctx context.Context, req UpdateBlockReq) error {
+	return c.post(ctx, "/api/block/updateBlock", req, nil)
+}
+
+// DeleteBlock 删除块。
+// 路由：POST /api/block/deleteBlock
+func (c *Client) DeleteBlock(ctx context.Context, id string) error {
+	return c.post(ctx, "/api/block/deleteBlock", M{"id": id}, nil)
+}
+
+// MoveBlockReq 移动块请求。
+type MoveBlockReq struct {
+	ID         string `json:"id"`
+	PreviousID string `json:"previousID,omitempty"`
+	ParentID   string `json:"parentID,omitempty"`
+}
+
+// MoveBlock 移动块。
+// 路由：POST /api/block/moveBlock
+func (c *Client) MoveBlock(ctx context.Context, req MoveBlockReq) error {
+	return c.post(ctx, "/api/block/moveBlock", req, nil)
+}
+
+// GetBlockKramdown 获取块 kramdown 源码。
+// 路由：POST /api/block/getBlockKramdown
+func (c *Client) GetBlockKramdown(ctx context.Context, id string) (string, error) {
+	var ret struct {
+		Kramdown string `json:"kramdown"`
+	}
+	err := c.post(ctx, "/api/block/getBlockKramdown", M{"id": id}, &ret)
+	return ret.Kramdown, err
+}
+
+// ChildBlock 代表子块简略信息。
+type ChildBlock struct {
+	ID      string `json:"id"`
+	Type    string `json:"type"`
+	SubType string `json:"subType"`
+}
+
+// GetChildBlocks 获取子块列表。
+// 路由：POST /api/block/getChildBlocks
+func (c *Client) GetChildBlocks(ctx context.Context, parentID string) ([]ChildBlock, error) {
+	var ret []ChildBlock
+	err := c.post(ctx, "/api/block/getChildBlocks", M{"id": parentID}, &ret)
+	return ret, err
+}
+
+// TransferBlockRefReq 转移块引用请求。
+type TransferBlockRefReq struct {
+	FromID string   `json:"fromID"`
+	ToID   string   `json:"toID"`
+	RefIDs []string `json:"refIDs,omitempty"` // 为空时转移全部引用
+}
+
+// TransferBlockRef 转移块引用。
+// 路由：POST /api/block/transferBlockRef
+func (c *Client) TransferBlockRef(ctx context.Context, req TransferBlockRefReq) error {
+	return c.post(ctx, "/api/block/transferBlockRef", req, nil)
+}
+
+// ============================================================================
+// 属性相关
+// ============================================================================
+
+// SetBlockAttrs 设置块属性。
+// attrs 中自定义属性必须以 custom- 前缀。
+// 路由：POST /api/attr/setBlockAttrs
+func (c *Client) SetBlockAttrs(ctx context.Context, id string, attrs map[string]string) error {
+	return c.post(ctx, "/api/attr/setBlockAttrs", M{"id": id, "attrs": attrs}, nil)
+}
+
+// GetBlockAttrs 获取块属性。
+// 返回 map 中包含官方内置属性（title、type、updated 等）以及自定义属性。
+// 路由：POST /api/attr/getBlockAttrs
+func (c *Client) GetBlockAttrs(ctx context.Context, id string) (map[string]string, error) {
+	var ret map[string]string
+	err := c.post(ctx, "/api/attr/getBlockAttrs", M{"id": id}, &ret)
+	return ret, err
+}
+
+// ============================================================================
+// SQL
+// ============================================================================
+
+// QuerySQL 执行 SQL 查询。
+// 返回表头+行数据，每一行为 map[string]interface{}
+// 路由：POST /api/query/sql
+func (c *Client) QuerySQL(ctx context.Context, stmt string) ([]map[string]interface{}, error) {
+	var ret []map[string]interface{}
+	err := c.post(ctx, "/api/query/sql", M{"stmt": stmt}, &ret)
+	return ret, err
+}
+
+// ============================================================================
+// 模板
+// ============================================================================
+
+// RenderTemplate 渲染模板文件。
+// path 为模板在工作空间的绝对路径，如 "F:\\SiYuan\\data\\templates\\foo.md"
+// 路由：POST /api/template/render
+func (c *Client) RenderTemplate(ctx context.Context, id, path string) (string, error) {
+	var ret struct {
+		Content string `json:"content"`
+	}
+	err := c.post(ctx, "/api/template/render", M{"id": id, "path": path}, &ret)
+	return ret.Content, err
+}
+
+// RenderSprig 渲染 Sprig 模板字符串。
+// 返回渲染后的字符串。
+// 路由：POST /api/template/renderSprig
+func (c *Client) RenderSprig(ctx context.Context, tpl string) (string, error) {
+	var ret string
+	err := c.post(ctx, "/api/template/renderSprig", M{"template": tpl}, &ret)
+	return ret, err
+}
+
+// ============================================================================
+// 文件
+// ============================================================================
+
+// GetFile 获取文件内容。
+// path 为工作空间相对路径，如 "/data/20210808180117-6v0mkxr/20200923234011-ieuun1p.sy"
+// 返回原始字节，可自己解码为文本。
+// 路由：POST /api/file/getFile
+func (c *Client) GetFile(ctx context.Context, path string) ([]byte, error) {
+	url := c.base + "/api/file/getFile"
+	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, url, nil)
+	if c.token != "" {
+		req.Header.Set("Authorization", "Token "+c.token)
+	}
+	q := req.URL.Query()
+	q.Add("path", path)
+	req.URL.RawQuery = q.Encode()
+	resp, err := c.httpc.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("http status=%d", resp.StatusCode)
+	}
+	return io.ReadAll(resp.Body)
+}
+
+// PutFileReq 写入文件请求。
+type PutFileReq struct {
+	Path    string // 工作空间相对路径
+	IsDir   bool   // 是否为创建文件夹
+	ModTime int64  // Unix 时间戳，可选
+	Content []byte // 文件内容，IsDir=true 时可空
+}
+
+// PutFile 写入文件/创建文件夹。
+// 内部使用 multipart，这里仅给出签名，实现同 UploadAsset。
+// 路由：POST /api/file/putFile
+func (c *Client) PutFile(ctx context.Context, req PutFileReq) error {
+	panic("implement me")
+}
+
+// RemoveFile 删除文件/文件夹。
+// 路由：POST /api/file/removeFile
+func (c *Client) RemoveFile(ctx context.Context, path string) error {
+	return c.post(ctx, "/api/file/removeFile", M{"path": path}, nil)
+}
+
+// RenameFile 重命名/移动文件。
+// 路由：POST /api/file/renameFile
+func (c *Client) RenameFile(ctx context.Context, oldPath, newPath string) error {
+	return c.post(ctx, "/api/file/renameFile", M{"path": oldPath, "newPath": newPath}, nil)
+}
+
+// FileInfo 代表列目录项。
+type FileInfo struct {
+	IsDir bool   `json:"isDir"`
+	Name  string `json:"name"`
+}
+
+// ReadDir 列出目录内容。
+// 路由：POST /api/file/readDir
+func (c *Client) ReadDir(ctx context.Context, path string) ([]FileInfo, error) {
+	var ret []FileInfo
+	err := c.post(ctx, "/api/file/readDir", M{"path": path}, &ret)
+	return ret, err
+}
+
+// ============================================================================
+// 导出
+// ============================================================================
+
+// ExportMdContent 导出文档 Markdown 文本。
+// 返回人类可读路径 + Markdown 内容。
+// 路由：POST /api/export/exportMdContent
+func (c *Client) ExportMdContent(ctx context.Context, id string) (hPath, content string, err error) {
+	var ret struct {
+		HPath   string `json:"hPath"`
+		Content string `json:"content"`
+	}
+	err = c.post(ctx, "/api/export/exportMdContent", M{"id": id}, &ret)
+	return ret.HPath, ret.Content, err
+}
+
+// ============================================================================
+// 转换
+// ============================================================================
+
+// Pandoc 调用 Pandoc 转换。
+// args 为完整命令行参数数组，如 ["--to", "markdown_strict-raw_html", "foo.epub", "-o", "foo.md"]
+// 工作目录被内核设置为 工作空间/temp/convert/pandoc/，如需先写入/读出文件，可配合 PutFile/GetFile。
+// 路由：POST /api/convert/pandoc
+func (c *Client) Pandoc(ctx context.Context, args []string) error {
+	return c.post(ctx, "/api/convert/pandoc", M{"args": args}, nil)
+}
+
+// ============================================================================
+// 通知
+// ============================================================================
+
+// PushMsg 推送普通消息。
+// timeout 毫秒，0 表示默认 7000。
+// 返回消息 ID。
+// 路由：POST /api/notification/pushMsg
+func (c *Client) PushMsg(ctx context.Context, msg string, timeout int) (string, error) {
+	if timeout == 0 {
+		timeout = 7000
+	}
+	var ret struct {
+		ID string `json:"id"`
+	}
+	err := c.post(ctx, "/api/notification/pushMsg", M{"msg": msg, "timeout": timeout}, &ret)
+	return ret.ID, err
+}
+
+// PushErrMsg 推送错误消息（红色）。
+// 路由：POST /api/notification/pushErrMsg
+func (c *Client) PushErrMsg(ctx context.Context, msg string, timeout int) (string, error) {
+	if timeout == 0 {
+		timeout = 7000
+	}
+	var ret struct {
+		ID string `json:"id"`
+	}
+	err := c.post(ctx, "/api/notification/pushErrMsg", M{"msg": msg, "timeout": timeout}, &ret)
+	return ret.ID, err
+}
+
+// ============================================================================
+// 系统
+// ============================================================================
+
+// BootProgress 获取启动进度。
+// 路由：POST /api/system/bootProgress
+func (c *Client) BootProgress(ctx context.Context) (details string, progress int, err error) {
+	var ret struct {
+		Details  string `json:"details"`
+		Progress int    `json:"progress"`
+	}
+	err = c.post(ctx, "/api/system/bootProgress", nil, &ret)
+	return ret.Details, ret.Progress, err
+}
+
+// Version 获取内核版本。
+// 路由：POST /api/system/version
+func (c *Client) Version(ctx context.Context) (string, error) {
+	var ret string
+	err := c.post(ctx, "/api/system/version", nil, &ret)
+	return ret, err
+}
+
+// CurrentTime 获取内核当前时间（毫秒 Unix 时间戳）。
+// 路由：POST /api/system/currentTime
+func (c *Client) CurrentTime(ctx context.Context) (int64, error) {
+	var ret int64
+	err := c.post(ctx, "/api/system/currentTime", nil, &ret)
+	return ret, err
+}
+
+// ============================================================================
+// 工具
+// ============================================================================
+
+// M 快速构造 map[string]interface{}，写示例代码更短。
+func M(kv ...interface{}) map[string]interface{} {
+	if len(kv)%2 != 0 {
+		panic("M: odd number of args")
+	}
+	m := make(map[string]interface{}, len(kv)/2)
+	for i := 0; i < len(kv); i += 2 {
+		key, ok := kv[i].(string)
+		if !ok {
+			panic("M: key must be string")
+		}
+		m[key] = kv[i+1]
+	}
+	return m
+}
