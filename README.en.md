@@ -78,6 +78,8 @@ siyuan-cli notebook getconf "notebook"           # get config
 siyuan-cli notebook setconf "notebook" --sort 1  # set config
 ```
 
+![notebook-list](images/notebook-list.png)
+
 ### Documents
 
 ```bash
@@ -93,6 +95,8 @@ siyuan-cli document history "nb" /doc --limit 5   # view history
 siyuan-cli document rollback "nb" /doc --to <history-path>  # rollback document
 ```
 
+![document-list](images/document-list.png)
+
 ### Search & Query
 
 ```bash
@@ -100,6 +104,8 @@ siyuan-cli search doc "AI"                       # search documents by title
 siyuan-cli search block "goroutine"               # full-text search blocks
 siyuan-cli query "SELECT * FROM blocks WHERE type='d' LIMIT 10"
 ```
+
+![search](images/search.png)
 
 ### Blocks & Tags
 
@@ -151,7 +157,11 @@ siyuan-cli chat --non-stream "question"          # non-streaming output
 
 The AI Agent uses 10 function tools to retrieve note content (list notebooks, document tree, get document, outline, full-text search, document search, tags, SQL query, create document, create daily note), automatically selects retrieval strategies and generates answers.
 
+![aichat](images/aichat.png)
+
 Interactive mode supports `/quit` `/exit` `/q` to exit, `/clear` to clear context.
+
+![chat-loop](images/chat-loop.png)
 
 ## Configuration
 

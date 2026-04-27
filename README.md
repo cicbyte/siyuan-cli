@@ -78,6 +78,8 @@ siyuan-cli notebook getconf "笔记本"            # 获取配置
 siyuan-cli notebook setconf "笔记本" --sort 1    # 设置配置
 ```
 
+![notebook-list](images/notebook-list.png)
+
 ### 文档
 
 ```bash
@@ -93,6 +95,8 @@ siyuan-cli document history "笔记" /文档 --limit 5  # 查看历史
 siyuan-cli document rollback "笔记" /文档 --to <history-path>  # 回滚文档
 ```
 
+![document-list](images/document-list.png)
+
 ### 搜索与查询
 
 ```bash
@@ -100,6 +104,8 @@ siyuan-cli search doc "AI"                       # 按标题搜索文档
 siyuan-cli search block "goroutine"               # 全文搜索块内容
 siyuan-cli query "SELECT * FROM blocks WHERE type='d' LIMIT 10"
 ```
+
+![search](images/search.png)
 
 ### 块 / 标签
 
@@ -151,7 +157,11 @@ siyuan-cli chat --non-stream "问题"              # 非流式输出
 
 AI Agent 通过 10 个 function tools 检索笔记内容（列出笔记本、文档树、获取文档、大纲、全文搜索、文档搜索、标签、SQL 查询、创建文档、创建日记），自动选择检索策略后生成回答。
 
+![aichat](images/aichat.png)
+
 交互模式支持 `/quit` `/exit` `/q` 退出、`/clear` 清除上下文。
+
+![chat-loop](images/chat-loop.png)
 
 ## 配置
 
